@@ -10,7 +10,7 @@ const client = new OpenAI({
   dangerouslyAllowBrowser: true,
 });
 
-const prompt = "Suggest some gifts for someone who loves hiphop music";
+const prompt = "Suggest some gifts for someone who loves hiphop music. Make these suggestions thoughtful and practical. Your response must be under 100 words. Skip intros and conclusions. Only output gift suggestions.";
 
 console.log("Prompt:", prompt);
 console.log("Making AI request...");
@@ -27,7 +27,8 @@ try {
   });
 
   console.log("AI response:");
-  console.table(response.choices[0].message.content);
+  console.log(response.choices[0].message.content);
+  
 
 } catch (error) {
   if (error.status === 401 || error.status === 403) {
