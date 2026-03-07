@@ -1,61 +1,77 @@
-import "dotenv/config";
-import { checkEnvironment } from "./utils.js";
 import OpenAI from "openai";
-
+import { autoResizeTextarea, checkEnvironment, setLoading, showStream } from "./utils.js";
+import {marked} from "marked";
+import DOMPurify from "dompurify";
 checkEnvironment();
 
-const client = new OpenAI({
+// Initialize an OpenAI client for your provider using env vars
+const openai = new OpenAI({
   apiKey: process.env.AI_KEY,
   baseURL: process.env.AI_URL,
   dangerouslyAllowBrowser: true,
 });
 
-console.log("Making AI request...");
+// Get UI elements
+const giftForm = document.getElementById("gift-form");
+const userInput = document.getElementById("user-input");
+const outputContent = document.getElementById("output-content");
 
+function start() {
+  // Setup UI event listeners
+  userInput.addEventListener("input", () => autoResizeTextarea(userInput));
+  giftForm.addEventListener("submit", handleGiftRequest);
+}
 
+// Initialize messages array with system prompt
+const messages = [
+  {
+    role: "system",
+    content: `You are the Gift Genie!
+    Make your gift suggestions thoughtful and practical.
+    Your response must be under 100 words. 
+    Skip intros and conclusions. 
+    Only output gift suggestions.`,
+  },
+];
 
-try {
-  const messages = [
-    {
-        role: "user",
-        content: "Suggest some gifts for someone who loves hiphop music. Make these suggestions thoughtful and practical. Your response must be under 100 words. Skip intros and conclusions. Only output gift suggestions.",
-      },
-  ]
-  const firstResponse = await client.chat.completions.create({
-    model: process.env.AI_MODEL,
-    messages,
-  });
+async function handleGiftRequest(e) {
+  // Prevent default form submission
+  e.preventDefault();
 
-  const firstAIMessage = firstResponse.choices[0].message
-  messages.push(firstAIMessage)
+  // Get user input, trim whitespace, exit if empty
+  const userPrompt = userInput.value.trim();
+  if (!userPrompt) return;
 
-  messages.push({
-    role: "user",
-    content: "More budget friendly. under 40$.",
-  })
+  // Set loading state
+  setLoading(true);
+  try{
+    // Add user message to messages array
+    messages.push({ role: "user", content: userPrompt });
+    // Send messages to AI and await response
+    const response = await openai.chat.completions.create({
+      model: process.env.AI_MODEL,
+      messages: messages,
+      stream: true, // Enable streaming response
+    })
 
-  const secondResponse = await client.chat.completions.create({
-    model: process.env.AI_MODEL,
-    messages,
-  });
-
-  console.log("AI response:");
-  console.log(secondResponse.choices[0].message.content);
-  
-
-} catch (error) {
-  if (error.status === 401 || error.status === 403) {
-    console.error(
-      "Authentication error: Check your AI_KEY and make sure it’s valid."
-    );
-  } else if (error.status >= 500) {
-    console.error(
-      "AI provider error: Something went wrong on the provider side. Try again shortly."
-    );
-  } else {
-    console.error(
-      "Unexpected error:",
-      error.message || error
-    );
+    // stream response
+    let fullResponse = "";
+    showStream();
+    for await (const chunk of response){
+      const content = chunk.choices[0].delta?.content;
+      if(content){
+        fullResponse += content;
+        outputContent.innerHTML = DOMPurify.sanitize(marked.parse(fullResponse));
+      
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching AI response:", error);
+    outputContent.innerHTML = "Sorry, something went wrong. Please try again.";
+  } finally {
+    // Clear loading state
+    setLoading(false);
   }
 }
+
+start();
