@@ -10,24 +10,37 @@ const client = new OpenAI({
   dangerouslyAllowBrowser: true,
 });
 
-const prompt = "Suggest some gifts for someone who loves hiphop music. Make these suggestions thoughtful and practical. Your response must be under 100 words. Skip intros and conclusions. Only output gift suggestions.";
-
-console.log("Prompt:", prompt);
 console.log("Making AI request...");
 
+
+
 try {
-  const response = await client.chat.completions.create({
-    model: process.env.AI_MODEL,
-    messages: [
-      {
+  const messages = [
+    {
         role: "user",
-        content: prompt,
+        content: "Suggest some gifts for someone who loves hiphop music. Make these suggestions thoughtful and practical. Your response must be under 100 words. Skip intros and conclusions. Only output gift suggestions.",
       },
-    ],
+  ]
+  const firstResponse = await client.chat.completions.create({
+    model: process.env.AI_MODEL,
+    messages,
+  });
+
+  const firstAIMessage = firstResponse.choices[0].message
+  messages.push(firstAIMessage)
+
+  messages.push({
+    role: "user",
+    content: "More budget friendly. under 40$.",
+  })
+
+  const secondResponse = await client.chat.completions.create({
+    model: process.env.AI_MODEL,
+    messages,
   });
 
   console.log("AI response:");
-  console.log(response.choices[0].message.content);
+  console.log(secondResponse.choices[0].message.content);
   
 
 } catch (error) {
