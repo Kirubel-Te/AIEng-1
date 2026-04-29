@@ -1,2 +1,3 @@
 # AI Engineering Crash Course
-## AI engineering course with scrimba using Node js and Groq AI modle
+## AI engineering course with scrimba using Node jsIexpress) and Groq AI model
+## Gift suggesting app.
